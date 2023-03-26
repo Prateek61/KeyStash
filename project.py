@@ -15,6 +15,13 @@ def get_password():
 def get_username():
     return input("Enter username ")
 
+def add_password(site: str, email: str, username: str, password: str):
+    SESSION.add(Site(site=site, password=password, username=username, email=email))
+    SESSION.commit()
+
+def get_passwords():
+    return SESSION.query(Site).all()
+
 def new_password():
     site = get_site()
     email = get_email()
