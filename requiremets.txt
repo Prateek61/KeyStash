@@ -1,3 +1,4 @@
 cryptography
 SQLAlchemy
 Werkzeug
+sqlalchemy-utils
