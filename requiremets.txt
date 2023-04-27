@@ -2,3 +2,5 @@ cryptography
 SQLAlchemy
 Werkzeug
 sqlalchemy-utils
+typer
+rich
