@@ -5,5 +5,9 @@ myenv
 
 # Pycache
 __pycache__
+.mypy_cache
 
 .cph
+
+# Database
+data.db

@@ -1,56 +1,25 @@
-from models import Site, get_session
+from typing import Optional
 
-SESSION = get_session()
-
-
-
-def get_key():
-    return input("Enter master key ")
-def get_site():
-    return input("Enter site name ")
-def get_email():
-    return input("Enter email ")
-def get_password():
-    return input("Enter password ")
-def get_username():
-    return input("Enter username ")
-
-def add_password(site: str, email: str, username: str, password: str):
-    SESSION.add(Site(site=site, password=password, username=username, email=email))
-    SESSION.commit()
-
-def get_passwords():
-    return SESSION.query(Site).all()
-
-def new_password():
-    site = get_site()
-    email = get_email()
-    username = get_username()
-    password = get_password()
-
-    # Add the data to the database
-    session = get_session()
-    session.add(Site(site=site, password=password, username=username, email=email))
-    session.commit()
-
-
-def saved_password():
-    return None
-
-
-    
+from models import Site
+from database import SESSION
 
 def main() -> None:
-    new_password()
-    return
-    x=input("n=new-password s=saved-password ")
-    if x=="n":
-        new_password()
 
-    if x=="s":
-        saved_password()
-    
+    master = SESSION.query(Site).filter(Site.master == 1).first()
+    if master is None:
+        print("No master password set. Please set a master password.")
+        username = input("Enter username: ")
+        password = input("Enter password: ")
 
+        master_site = Site("master", password, username, True)
+        SESSION.add(master_site)
+        SESSION.commit()   
+    else:
+        password = input("Enter master password: ")
+        while not master.check_password(password):
+            password = input("Incorrect password. Enter master password: ")
+
+    # TODO
 
 
 if __name__ == "__main__":
