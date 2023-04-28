@@ -5,3 +5,4 @@ sqlalchemy-utils
 typer
 rich
 pyperclip
+pytest
