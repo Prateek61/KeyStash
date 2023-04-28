@@ -4,3 +4,4 @@ Werkzeug
 sqlalchemy-utils
 typer
 rich
+pyperclip

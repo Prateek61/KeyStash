@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 class Base(DeclarativeBase):
     pass
 
-class Site(Base):
+class Account(Base):
     __tablename__ = "sites"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -21,11 +21,7 @@ class Site(Base):
         self.site = site
         self.username = username
         self.master = master
-
-        if master:
-            self.password = generate_password_hash(password)
-        else:
-            self.password = password
+        self.password = password
 
     def __repr__(self):
         return f"<Site(site='{self.site}', email='{self.username}', username='{self.username}')>"
