@@ -170,13 +170,6 @@ def get(
         rprint("[bold red]Account not set[/bold red]")
 
 
-@app.command()
-def check() -> None:
-    """Checks if master password is set"""
-    fernet_engine = get_fernet_engine()
-
-    rprint("Helo!")
-
 
 def main() -> None:
     app()
