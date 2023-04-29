@@ -25,26 +25,14 @@ engine: Engine = create_engine("sqlite:///data.db")
 Base.metadata.create_all(bind=engine)
 
 # Create session
-SESSION: Session = sessionmaker(bind=engine)()
-
-# For fernet
-salt = b'\xe7\x96\xdc2A\x15\xcd\xc9\x87\x90;\x06\xbb\xee\x16\x94'
-kdf = PBKDF2HMAC(
-    algorithm=hashes.SHA256(),
-    length=32,
-    salt=salt,
-    iterations=480000,
-)
+session: Session = sessionmaker(bind=engine)()
 
 
-def get_fernet_engine(master: Optional[str] = None) -> Fernet:
-    """Gets master password"""
-    master_account = SESSION.query(Account).filter(Account.master == 1).first()
+def prompt_master_password(master: Optional[str] = None) -> Optional[str]:
+    master_account = session.query(Account).filter(Account.master == 1).first()
 
     if not master_account:
-        rprint("[bold red]Master password not set[/bold red]")
-        rprint("[bold red]Run: [/bold red][bold green]setup[/bold green]")
-        raise typer.Exit()
+        return None
     
     while True:
         if master:
@@ -53,11 +41,28 @@ def get_fernet_engine(master: Optional[str] = None) -> Fernet:
         else:
             password = typer.prompt("Enter master password", hide_input=True)
         if check_password_hash(master_account.password, password):
-            break
-        else:
-            rprint("[bold red]Incorrect password[/bold red]")
+            return password
 
-    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
+def get_fernet_engine(master: Optional[str] = None) -> Fernet:
+    """Gets master password"""
+    master_password = prompt_master_password(master=master)
+
+    if not master_password:
+        rprint("[bold red]Master password not set[/bold red]")
+        rprint("[bold red]Run: [/bold red][bold green]setup[/bold green]")
+        raise typer.Exit()
+
+    # For fernet
+    salt = b'\xe7\x96\xdc2A\x15\xcd\xc9\x87\x90;\x06\xbb\xee\x16\x94'
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=480000,
+    )
+
+    key = base64.urlsafe_b64encode(kdf.derive(master_password.encode()))
     f = Fernet(key)
     return f
 
@@ -88,19 +93,21 @@ def new_password(generate: bool = True, password: Optional[str] = None) -> str:
 @app.command()
 def setup(
     username: str = typer.Argument("master", help = "Username for master password"),
-    generate: bool = typer.Option(False, help="Generate password", show_choices=True)
+    generate: bool = typer.Option(False, help="Generate password", show_choices=True),
+    master_password: Optional[str] = typer.Option(None, "--master", "-m", help="Master password")
 ) -> None:
     """Sets up master password"""
-    master = SESSION.query(Account).filter(Account.master == 1).first()
-    if master:
+    master_account = session.query(Account).filter(Account.master == 1).first()
+    if master_account:
         print("Master password already set.")
         return
     else:
-        master_password = new_password(generate=generate)
+        if not master_password:
+            master_password = new_password(generate=generate)
 
         master_account = Account(site="master", password=generate_password_hash(master_password), username=username, master=True)
-        SESSION.add(master_account)
-        SESSION.commit()
+        session.add(master_account)
+        session.commit()
 
         if not generate:
             rprint("[bold green]Master password set[/bold green]")
@@ -120,20 +127,20 @@ def set(
     """Sets password for a account"""
     fernet_engine = get_fernet_engine(master=master)
 
-    account = SESSION.query(Account).filter(Account.site == site, Account.username == username).first()
+    account = session.query(Account).filter(Account.site == site, Account.username == username).first()
     if account:
         # Ask if user wants to update password
         if update or typer.confirm("Account already set. Do you want to update it?"):
             _password = new_password(generate=generate, password=password)
             account.password = fernet_engine.encrypt(_password.encode())
-            SESSION.commit()
+            session.commit()
         else:
             return
     else:
         _password = new_password(generate=generate, password=password)
         new_account = Account(site=site, password=fernet_engine.encrypt(_password.encode()), username=username)
-        SESSION.add(new_account)
-        SESSION.commit()
+        session.add(new_account)
+        session.commit()
 
     rprint(f"[bold green]Password set:[/bold green] {_password}")
 
@@ -149,7 +156,7 @@ def get(
     """Gets password for a account"""
     fernet_engine = get_fernet_engine(master=master)
 
-    account = SESSION.query(Account).filter(Account.site == site, Account.username == username).first()
+    account = session.query(Account).filter(Account.site == site, Account.username == username).first()
     if account:
         password = fernet_engine.decrypt(account.password).decode()
         if copy:
@@ -174,6 +181,14 @@ def check() -> None:
 def main() -> None:
     app()
 
-
 if __name__ == "__main__":
     main()
+
+def create_test_session() -> None:
+    """Creates test session"""
+    global session
+
+    test_engine: Engine = create_engine("sqlite:///test.db", echo=True)
+    Base.metadata.create_all(test_engine)
+
+    session = sessionmaker(bind=test_engine)()

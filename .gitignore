@@ -12,3 +12,4 @@ __pycache__
 
 # Database
 data.db
+test.db
