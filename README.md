@@ -1,7 +1,5 @@
 # KeyStash
 
-Video Demo: <https://youtu.be/vx5H5NSs37Q>
-
 ## About
 
 KeyStash is a password manager that allows users to store their passwords in a secure manner. The passwords are encrypted using AES-256 encryption and stored in a local database. The user can then retrieve their passwords by entering the master password. The master password is hashed using SHA-256 and stored in the database. The user can also generate a random password using the password generator.
